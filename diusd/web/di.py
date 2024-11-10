@@ -10,7 +10,9 @@ import quantstats as qs
 import requests
 from fredapi import Fred
 
-from diusd.web.lib import sgs
+from .lib import sgs
+import matplotlib.pyplot as plt
+
 
 IndexNames = Literal["usd", "di", "corp"]
 
@@ -230,6 +232,97 @@ class DiDolReturn:
         }
 
         return rentab_table
+
+
+class DiDolFig:
+    def __init__(self, fator_df) -> None:
+        self.fator_df = fator_df
+
+    @cached_property
+    def di_usd(self):
+        usd = self.fator_df.usd / self.fator_df.usd.iloc[0]
+        usd = (usd - 1) * 100
+
+        di = self.fator_df.di / self.fator_df.di.iloc[0]
+        di = (di - 1) * 100
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(usd.index, usd, label="Taxa de Cambio BRL/USD")
+        ax.plot(di.index, di, label="DI em BRL")
+
+        ax.set_xlabel("Data")
+        ax.set_ylabel("Retorno Acumulado")
+        ax.set_title("Comparando Retorno do USD com DI")
+        ax.legend()
+        return fig
+
+    @cached_property
+    def di_usd_corp(self):
+        di_usd = self.fator_df.di / self.fator_df.usd
+        di_usd = di_usd / di_usd.iloc[0]
+        di_usd = (di_usd - 1) * 100
+
+        corp = self.fator_df.corp / self.fator_df.corp.iloc[0]
+        corp = (corp - 1) * 100
+
+        fig, ax = plt.subplots()
+        ax.plot(di_usd.index, di_usd, label="DI em USD")
+        ax.plot(corp.index, corp, label="US Corp IG Index")
+
+        ax.set_xlabel("Data")
+        ax.set_ylabel("Retorno Acumulado")
+        ax.set_title("Comparando Retorno do DI em USD com US Corp IG Index")
+        ax.legend()
+        return fig
+
+    @cached_property
+    def di_usd_excesso(self):
+        di_usd = self.fator_df.di / self.fator_df.usd
+        di_usd_corp = di_usd / self.fator_df.corp
+        di_usd_corp = di_usd_corp / di_usd_corp.iloc[0]
+        di_usd_corp = (di_usd_corp - 1) * 100
+
+        fig, ax = plt.subplots()
+        ax.plot(
+            di_usd_corp.index, di_usd_corp, label="DI em USD acima do US Corp IG Index"
+        )
+
+        ax.set_xlabel("Data")
+        ax.set_ylabel("Retorno Acumulado")
+        ax.set_title("Retorno Adicional do DI em USD com US Corp IG Index")
+        ax.legend()
+        return fig
+
+
+def get_plot_fig(fator_df: pd.DataFrame):
+    figs = []
+
+    usd = fator_df.usd
+    usd.name = "USD"
+
+    di_usd = fator_df.di / fator_df.usd
+    di_usd.name = "DI em USD"
+
+    fig_di_usd, ax = plt.subplots(figsize=(10, 6))
+
+    corp = fator_df.corp
+    corp.name = "US Corp IG Index"
+
+    excesso = di_usd / corp
+    excesso.name = "DI em USD acima do US Corp IG Index"
+    df = pd.concat([usd, di_usd, corp, excesso], axis=1)
+    df = df / df.iloc[0]
+    df = (df - 1) * 100
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for col in df.columns:
+        ax.plot(df.index, df[col], label=col)
+
+    ax.set_xlabel("Data")
+    ax.set_ylabel("Retorno Acumulado")
+    ax.set_title("Historico")
+    ax.legend()
+    return fig
 
 
 def show_reports(df):

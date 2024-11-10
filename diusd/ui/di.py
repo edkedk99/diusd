@@ -2,9 +2,10 @@ from datetime import date, datetime
 
 import pandas as pd
 import streamlit as st
-from requests.exceptions import JSONDecodeError
+
 import os
-from diusd.web import di
+from ..web import di
+
 
 file_path = os.getenv("DIUSD_FILE_PATH")
 if not file_path:
@@ -63,3 +64,8 @@ st.dataframe(usd_table)
 st.subheader("Rentabilidade")
 rentab_table = rets.get_returns_table()
 st.dataframe(rentab_table)
+
+di_dol_fig = di.DiDolFig(rets._fator_df)
+st.pyplot(di_dol_fig.di_usd, use_container_width=True)
+st.pyplot(di_dol_fig.di_usd_corp, use_container_width=True)
+st.pyplot(di_dol_fig.di_usd_excesso, use_container_width=True)
