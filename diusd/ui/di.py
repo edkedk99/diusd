@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 import os
-from ..web import di
+from diusd.web import di
 
 
 file_path = os.getenv("DIUSD_FILE_PATH")

@@ -10,7 +10,7 @@ import quantstats as qs
 import requests
 from fredapi import Fred
 
-from .lib import sgs
+from diusd.web.lib import sgs
 import matplotlib.pyplot as plt
 
 
