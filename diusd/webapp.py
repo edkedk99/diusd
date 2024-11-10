@@ -1,6 +1,9 @@
+import sys
+
 import streamlit as st
 from dotenv import load_dotenv
 
+sys.path.append(".")
 load_dotenv(".env")
 
 pages = {
