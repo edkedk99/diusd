@@ -3,6 +3,5 @@ pandas
 python-dotenv
 
 streamlit
-quantstats
 fredapi
 matplotlib

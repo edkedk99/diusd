@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-import quantstats as qs
 import requests
 from fredapi import Fred
 
@@ -331,4 +330,3 @@ def show_reports(df):
 
     assert isinstance(returns, pd.Series)
     assert isinstance(bench_returns, pd.Series)
-    # quant.show_report(returns, bench_returns)
