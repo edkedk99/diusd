@@ -2,7 +2,7 @@
 base = "light"
 
 [server]
-enableStaticServing = true
+enableStaticServing = false
 headless = true
 address = "0.0.0.0"
 

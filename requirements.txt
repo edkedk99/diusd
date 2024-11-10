@@ -1,13 +1,7 @@
 # Normal requirement
-python-dateutil
 pandas
 python-dotenv
 
-
-
-
 streamlit
-streamlit-date-picker
-streamlit_searchbox
-streamlit-datalist
-
+quantstats
+fredapi
