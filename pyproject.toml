@@ -1,0 +1,68 @@
+[tool.pyright]
+venvPath = "venv"
+venv = "."
+verboseOutput = false
+reportConstantRedefinition = "warning"
+reportUnnecessaryComparison = "warning"
+reportAssertAlwaysTrue = "warning"
+reportUnusedExpression = false
+include = ["diusd"]
+exclude = ["**/node_modules",
+    "**/__pycache__",
+    "build/*",
+    "dist/*"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["diusd"]
+
+[tool.vulture]
+exclude = []
+ignore_decorators = []
+ignore_names = []
+make_whitelist = false
+min_confidence = 0
+paths = ["diusd"]
+sort_by_size = true
+verbose = false
+
+[tool.isort]
+profile = "black"
+
+[metadata]
+description = "diusd"
+keyword = []
+classifiers = [""]
+author = "Anonymous"
+author_email = ""
+
+[project]
+name = "diusd"
+version = "0.1.0"
+# readme= "docs/README.md"
+requires-python = ">=3.8"
+license = {text = "MIT License"}
+dependencies = [
+    "python-dateutil",
+    "pandas",
+    "python-dotenv",
+
+
+   "streamlit",
+   "streamlit-date-picker",
+   "streamlit_searchbox",
+   "streamlit-datalist",
+
+]
+
+[project.urls]
+# homepage = "https://github.com/edkedk99/hledger-args"
+# documentation = "https://edkedk99.github.io/hledger-args/"
+# repository = "https://github.com/edkedk99/hledger-args"
+# changelog = ""
+
+[project.scripts]
+phlc = "diusd.__main__:main"

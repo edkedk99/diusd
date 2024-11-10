@@ -1,0 +1,11 @@
+[theme]
+base = "light"
+
+[server]
+enableStaticServing = true
+headless = true
+address = "0.0.0.0"
+
+
+[client]
+toolbarMode = "auto"
