@@ -6,7 +6,7 @@ import streamlit as st
 import os
 from diusd.web import di
 
-
+st.set_page_config(layout="wide")
 file_path = os.getenv("DIUSD_FILE_PATH")
 if not file_path:
     st.error("Dados nao encontrados")
@@ -48,8 +48,8 @@ end_dt = datetime(end_field.year, end_field.month, end_field.day)  # pyright: ig
 rets = di.DiDolReturn(data.df, start_dt, end_dt)
 
 period_col1, period_col2 = st.columns(2)
-period_col1.metric("Dias Uteis", rets.dias)
-period_col2.metric("Anos", f"{rets.dias / 252:,.2f}")
+st.metric("Dias Uteis", rets.dias)
+st.metric("Anos", f"{rets.dias / 252:,.2f}")
 
 
 inicio_dt = rets.period_df.iloc[0].name
@@ -66,6 +66,10 @@ rentab_table = rets.get_returns_table()
 st.dataframe(rentab_table)
 
 di_dol_fig = di.DiDolFig(rets._fator_df)
-st.pyplot(di_dol_fig.di_usd, use_container_width=True)
-st.pyplot(di_dol_fig.di_usd_corp, use_container_width=True)
-st.pyplot(di_dol_fig.di_usd_excesso, use_container_width=True)
+st.plotly_chart(di_dol_fig.di_usd, use_container_width=True)
+st.plotly_chart(di_dol_fig.di_usd_corp, use_container_width=True)
+st.plotly_chart(di_dol_fig.di_usd_excesso, use_container_width=True)
+
+last_years = st.number_input("Anos acumulados", min_value=0, step=1, value=5)
+last_years_fig = di_dol_fig.excesso_years(last_years)
+st.plotly_chart(last_years_fig)

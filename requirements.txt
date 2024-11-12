@@ -4,4 +4,4 @@ python-dotenv
 
 streamlit
 fredapi
-matplotlib
+plotly

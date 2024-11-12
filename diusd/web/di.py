@@ -11,9 +11,11 @@ from fredapi import Fred
 
 from diusd.web.lib import sgs
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 
 IndexNames = Literal["usd", "di", "corp"]
+AnualizaTipos = Literal["fixo", "posicao", "nenhum"]
 
 
 def load_data(file_path: str):
@@ -236,97 +238,120 @@ class DiDolReturn:
 class DiDolFig:
     def __init__(self, fator_df) -> None:
         self.fator_df = fator_df
+        self.fator_df["di_usd"] = self.fator_df.di / self.fator_df.usd
+        self.fator_df = self.fator_df / self.fator_df.iloc[0]
+
+        self.xlabel_default = "Data"
+        self.ylabel_default = "Acumulado equivalente ao ano em %"
+
+    def create_fig(
+        self, title: str, ylabel: str, xlabel: str, prices: dict[str, pd.Series]
+    ):
+        fig = go.Figure()
+
+        for label, ser in prices.items():
+            fig.add_trace(go.Scatter(x=ser.index, y=ser, mode="lines", name=label))
+
+        fig.update_layout(
+            title=title,
+            xaxis_title=xlabel,
+            yaxis_title=ylabel,
+            showlegend=True,
+            template="plotly_white",
+            autosize=True,
+        )
+
+        fig.update_xaxes(showgrid=True, gridcolor="gray", gridwidth=0.5)
+        fig.update_yaxes(showgrid=True, gridcolor="gray", gridwidth=0.5)
+
+        fig.add_hline(y=0)
+
+        ymin = min(price.min() for price in prices.values()) - 1
+
+        fig.add_shape(
+            type="rect",
+            x0=min(price.index.min() for price in prices.values()),
+            x1=max(price.index.max() for price in prices.values()),
+            y0=ymin - -1,
+            y1=0,
+            fillcolor="lightcoral",
+            opacity=0.3,
+            line=dict(width=0),
+        )
+        return fig
+
+    def prepare_price(
+        self, serie: pd.Series, anualiza: AnualizaTipos, dias: int | None = None
+    ):
+        ser_chart = serie / serie.iloc[0]
+        if anualiza == "fixo":
+            assert isinstance(dias, int)
+            ser_chart = ser_chart ** (252 / dias)
+        elif anualiza == "posicao":
+            ser_dias = pd.Series(range(1, len(serie) + 1))
+            ser_dias.index = serie.index
+            ser_chart = ser_chart ** (252 / ser_dias)
+
+        ser_chart = (ser_chart - 1) * 100
+        return ser_chart
+
+    def prep(self, serie: pd.Series):
+        ser = serie
+        ser.name = "valor"
+        df = pd.DataFrame(serie)
+        df["dias"] = range(1, len(serie) + 1)
+        df_qe = df.resample("QE").last()
+        df_qe["valor"] = df_qe.valor / df_qe.valor.iloc[0]
+        ser_qe_anual = df_qe.valor ** (252 / df_qe.dias)
+        ser_chart = (ser_qe_anual - 1) * 100
+        return ser_chart
 
     @cached_property
     def di_usd(self):
-        usd = self.fator_df.usd / self.fator_df.usd.iloc[0]
-        usd = (usd - 1) * 100
+        title = "Comparando Retorno do USD com DI"
+        usd = self.prep(self.fator_df.usd)
+        di = self.prep(self.fator_df.di)
 
-        di = self.fator_df.di / self.fator_df.di.iloc[0]
-        di = (di - 1) * 100
+        prices = {
+            "Taxa de Cambio BRL/USD": usd,
+            "DI em BRL": di,
+        }
 
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(usd.index, usd, label="Taxa de Cambio BRL/USD")
-        ax.plot(di.index, di, label="DI em BRL")
-
-        ax.set_xlabel("Data")
-        ax.set_ylabel("Retorno Acumulado")
-        ax.set_title("Comparando Retorno do USD com DI")
-        ax.legend()
+        fig = self.create_fig(title, self.ylabel_default, self.xlabel_default, prices)
         return fig
 
     @cached_property
     def di_usd_corp(self):
-        di_usd = self.fator_df.di / self.fator_df.usd
-        di_usd = di_usd / di_usd.iloc[0]
-        di_usd = (di_usd - 1) * 100
+        title = "Comparando Retorno do DI em USD com US Corp IG Index"
+        di_usd = self.prep(self.fator_df.di_usd)
+        corp = self.prep(self.fator_df.corp)
 
-        corp = self.fator_df.corp / self.fator_df.corp.iloc[0]
-        corp = (corp - 1) * 100
+        prices = {"DI em USD": di_usd, "US Corp IG Index": corp}
 
-        fig, ax = plt.subplots()
-        ax.plot(di_usd.index, di_usd, label="DI em USD")
-        ax.plot(corp.index, corp, label="US Corp IG Index")
-
-        ax.set_xlabel("Data")
-        ax.set_ylabel("Retorno Acumulado")
-        ax.set_title("Comparando Retorno do DI em USD com US Corp IG Index")
-        ax.legend()
+        fig = self.create_fig(title, self.ylabel_default, self.xlabel_default, prices)
         return fig
 
     @cached_property
     def di_usd_excesso(self):
-        di_usd = self.fator_df.di / self.fator_df.usd
-        di_usd_corp = di_usd / self.fator_df.corp
-        di_usd_corp = di_usd_corp / di_usd_corp.iloc[0]
-        di_usd_corp = (di_usd_corp - 1) * 100
+        title = "Retorno Adicional do DI em USD com US Corp IG Index"
+        di_usd_corp = self.fator_df.di_usd / self.fator_df.corp
+        di_usd_corp = self.prep(di_usd_corp)
 
-        fig, ax = plt.subplots()
-        ax.plot(
-            di_usd_corp.index, di_usd_corp, label="DI em USD acima do US Corp IG Index"
-        )
+        prices = {"DI em USD acima do US Corp IG Index": di_usd_corp}
 
-        ax.set_xlabel("Data")
-        ax.set_ylabel("Retorno Acumulado")
-        ax.set_title("Retorno Adicional do DI em USD com US Corp IG Index")
-        ax.legend()
+        fig = self.create_fig(title, self.ylabel_default, self.xlabel_default, prices)
         return fig
 
+    def excesso_years(self, years: int):
+        title = f"Retorno Adicional Anualizado do DI em USD com US Corp IG Index, ultimos {years} anos"
+        di_usd_corp = self.fator_df.di_usd / self.fator_df.corp
+        di_usd_corp = di_usd_corp / di_usd_corp.iloc[0]
 
-def get_plot_fig(fator_df: pd.DataFrame):
-    figs = []
+        shift_days = years * 252
+        ser = di_usd_corp / di_usd_corp.shift(shift_days)
+        ser = ser.dropna()
+        ser = self.prepare_price(ser, "fixo", dias=years * 252)
 
-    usd = fator_df.usd
-    usd.name = "USD"
-
-    di_usd = fator_df.di / fator_df.usd
-    di_usd.name = "DI em USD"
-
-    fig_di_usd, ax = plt.subplots(figsize=(10, 6))
-
-    corp = fator_df.corp
-    corp.name = "US Corp IG Index"
-
-    excesso = di_usd / corp
-    excesso.name = "DI em USD acima do US Corp IG Index"
-    df = pd.concat([usd, di_usd, corp, excesso], axis=1)
-    df = df / df.iloc[0]
-    df = (df - 1) * 100
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for col in df.columns:
-        ax.plot(df.index, df[col], label=col)
-
-    ax.set_xlabel("Data")
-    ax.set_ylabel("Retorno Acumulado")
-    ax.set_title("Historico")
-    ax.legend()
-    return fig
-
-
-def show_reports(df):
-    returns = qs.utils.to_returns(prices=df.fator_di_dol)
-    bench_returns = qs.utils.to_returns(prices=df.corp)
-
-    assert isinstance(returns, pd.Series)
-    assert isinstance(bench_returns, pd.Series)
+        prices = {"DI em USD acima do US Corp IG Index": ser}
+        fig = self.create_fig(title, self.ylabel_default, self.xlabel_default, prices)
+        return fig
